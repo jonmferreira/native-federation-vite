@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
@@ -20,6 +21,7 @@ import {
 } from '@softarc/native-federation/internal'
 
 import { createViteAdapter, type ViteAdapterConfig } from './vite-adapter'
+import { renderHeaders, HEADERS_FILENAME } from './headers'
 
 export interface ViteBuilderOptions {
   /** Where the federated artifacts (remoteEntry.json + bundles) are written. */
@@ -40,6 +42,12 @@ export interface ViteBuilderOptions {
   watch?: boolean
   /** Debounce before a watch-triggered rebuild, in ms. Default: `50`. */
   rebuildDelay?: number
+  /**
+   * Emit a `_headers` file (Cloudflare Pages / Netlify) so a refresh reliably
+   * picks up redeployed remotes: manifests revalidate, hashed bundles cache
+   * forever. Default: `false`.
+   */
+  emitHeaders?: boolean
   /** Opt-in adapter config (framework plugins, target). */
   adapterConfig?: ViteAdapterConfig
 }
@@ -95,6 +103,10 @@ export async function runViteBuilder(
   } catch (error) {
     await adapter.dispose()
     throw error
+  }
+
+  if (options.emitHeaders) {
+    writeFileSync(join(options.outputPath, HEADERS_FILENAME), renderHeaders())
   }
 
   if (!options.watch) {

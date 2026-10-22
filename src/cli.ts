@@ -37,7 +37,8 @@ async function main(): Promise<void> {
       watch: { type: 'boolean', default: false },
       dev: { type: 'boolean', default: false },
       'vite-config': { type: 'string' },
-      'no-vite-config': { type: 'boolean', default: false }
+      'no-vite-config': { type: 'boolean', default: false },
+      'emit-headers': { type: 'boolean', default: false }
     }
   })
 
@@ -57,6 +58,7 @@ async function main(): Promise<void> {
     outputPath: resolve(root, values.out),
     dev: values.dev,
     watch: values.watch,
+    emitHeaders: values['emit-headers'],
     adapterConfig: { plugins }
   })
 

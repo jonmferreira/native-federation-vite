@@ -110,6 +110,7 @@ the core. Any `@softarc/native-federation` host can now `loadRemoteModule('vue-r
 | `--dev` | `false` | Dev build (no minify, sourcemaps) |
 | `--vite-config <path>` | auto-detect | Vite config to reuse plugins from |
 | `--no-vite-config` | `false` | Don't reuse any Vite config |
+| `--emit-headers` | `false` | Emit a `_headers` file (Cloudflare Pages / Netlify) for reliable updates |
 
 ### Programmatic API
 
@@ -159,6 +160,27 @@ customElements.define('fed-button', El) // then use <fed-button></fed-button>
 
 See [`examples/vue-remote/src/elements`](examples/vue-remote/src/elements) and the
 runtime host in [`examples/html-shell`](examples/html-shell).
+
+## Caching & updates (reliable refresh)
+
+A redeployed remote should show up on a plain refresh, without a rebuild of the
+host. That is a caching question, not a runtime one: the host re-fetches each
+`remoteEntry.json` on load, so it must not be cached hard, while the
+content-hashed bundles can cache forever.
+
+Pass `--emit-headers` (or `emitHeaders: true`) and the build writes a `_headers`
+file (read by **Cloudflare Pages** and **Netlify**):
+
+```
+/remoteEntry.json
+  Cache-Control: no-cache
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+A refresh then does one tiny conditional request for `remoteEntry.json` and only
+downloads bundles that actually changed. On nginx/Vercel, apply the same rule
+(`no-cache` for `*.json` manifests, `immutable` for hashed assets).
 
 ## Integrity (SRI) for production
 
