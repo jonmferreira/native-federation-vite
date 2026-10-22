@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { existsSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
@@ -75,6 +75,7 @@ export async function runViteBuilder(
 ): Promise<ViteBuilderResult> {
   const workspaceRoot = options.workspaceRoot ?? process.cwd()
   const cachePath = options.cachePath ?? join(options.outputPath, '.nf-cache')
+  const ts = resolveTsConfig(options.tsConfig, workspaceRoot)
 
   const adapter = createViteAdapter(options.adapterConfig)
   setBuildAdapter(adapter)
@@ -87,7 +88,7 @@ export async function runViteBuilder(
       workspaceRoot,
       outputPath: options.outputPath,
       federationConfig: federationConfigPath,
-      tsConfig: options.tsConfig,
+      tsConfig: ts.path,
       dev: options.dev ?? false,
       watch: options.watch ?? false,
       packageJson: options.packageJson
@@ -102,6 +103,7 @@ export async function runViteBuilder(
     federationInfo = await buildForFederation(config, fedOptions, externals)
   } catch (error) {
     await adapter.dispose()
+    ts.cleanup()
     throw error
   }
 
@@ -110,6 +112,7 @@ export async function runViteBuilder(
   }
 
   if (!options.watch) {
+    ts.cleanup()
     return {
       get federationInfo() {
         return federationInfo
@@ -138,6 +141,7 @@ export async function runViteBuilder(
     async close() {
       await stopWatching()
       await adapter.dispose()
+      ts.cleanup()
     }
   }
 }
@@ -194,6 +198,62 @@ function startWatch(deps: WatchDeps): () => Promise<void> {
     closed = true
     queue.dispose()
     await watcher.close()
+  }
+}
+
+/**
+ * The core requires a tsconfig (it reads path mappings from it). Angular/esbuild
+ * projects always have one; a plain JS Vite remote may not. Honour an explicit
+ * path, otherwise use the project's own tsconfig if present, and as a last
+ * resort generate a minimal temporary one so a config-less remote still builds.
+ *
+ * It is written at the workspace root as `tsconfig.json` (the standard name) and
+ * removed when the build finishes (or on watch close). Two Windows-specific
+ * reasons for both choices: a tsconfig deep in the output dir, or one with a
+ * non-standard name, makes TypeScript's resolver walk up the tree looking for a
+ * real `tsconfig.json` and lstat protected files at the drive root (EPERM on
+ * C:\DumpStack.log.tmp). We only generate when the project has none, so writing
+ * `tsconfig.json` never clobbers a user file. Defaults mirror Angular 22 so
+ * package subpath exports resolve (issue #180 lesson: module "preserve" +
+ * skipLibCheck).
+ */
+function resolveTsConfig(
+  explicit: string | undefined,
+  workspaceRoot: string
+): { path: string; cleanup: () => void } {
+  const noop = (): void => {}
+  if (explicit) return { path: explicit, cleanup: noop }
+  for (const candidate of ['tsconfig.json', 'tsconfig.base.json']) {
+    const path = join(workspaceRoot, candidate)
+    if (existsSync(path)) return { path, cleanup: noop }
+  }
+  const generated = join(workspaceRoot, 'tsconfig.json')
+  writeFileSync(
+    generated,
+    JSON.stringify(
+      {
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'preserve',
+          moduleResolution: 'bundler',
+          skipLibCheck: true,
+          strict: true
+        }
+      },
+      null,
+      2
+    )
+  )
+  logger.info(`No tsconfig found; generated a temporary default at ${generated}`)
+  return {
+    path: generated,
+    cleanup: () => {
+      try {
+        rmSync(generated)
+      } catch {
+        // best effort; nothing to clean up if it is already gone
+      }
+    }
   }
 }
 

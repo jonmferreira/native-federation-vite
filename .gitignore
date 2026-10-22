@@ -6,3 +6,4 @@ out-tsc/
 .DS_Store
 Thumbs.db
 *.swp
+*.tgz

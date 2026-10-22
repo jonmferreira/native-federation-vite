@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -9,6 +10,36 @@ import type { Plugin as VitePlugin } from 'vite'
 import { runViteBuilder } from './builder'
 
 const VITE_CONFIG_CANDIDATES = ['vite.config.ts', 'vite.config.js', 'vite.config.mjs']
+
+const USAGE = `native-federation-vite - build Native Federation remotes with Vite
+
+Usage:
+  native-federation-vite build [options]
+
+Options:
+  --config <path>        Federation config file (default: federation.config.js)
+  --out <dir>            Output directory (default: dist)
+  --ts-config <path>     tsconfig to use (auto-detected; a minimal default is
+                         generated when the project has none)
+  --vite-config <path>   Vite config to reuse plugins from (default: autodetect)
+  --no-vite-config       Do not reuse any Vite config plugins
+  --emit-headers         Write a _headers file (Cloudflare Pages / Netlify)
+  --dev                  Dev build (no minify, sourcemaps)
+  --watch                Rebuild on file changes
+  -h, --help             Show this help
+  -v, --version          Show the installed version`
+
+function readVersion(): string {
+  try {
+    const require = createRequire(import.meta.url)
+    const pkg = JSON.parse(readFileSync(require.resolve('../package.json'), 'utf8')) as {
+      version?: string
+    }
+    return pkg.version ?? 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
 
 /**
  * Reuse the project's existing Vite plugins (e.g. vue()/react()) so the user
@@ -29,22 +60,42 @@ async function loadVitePlugins(root: string, explicit?: string): Promise<VitePlu
 }
 
 async function main(): Promise<void> {
-  const { values, positionals } = parseArgs({
-    allowPositionals: true,
-    options: {
-      config: { type: 'string', default: 'federation.config.js' },
-      out: { type: 'string', default: 'dist' },
-      watch: { type: 'boolean', default: false },
-      dev: { type: 'boolean', default: false },
-      'vite-config': { type: 'string' },
-      'no-vite-config': { type: 'boolean', default: false },
-      'emit-headers': { type: 'boolean', default: false }
-    }
-  })
+  let parsed
+  try {
+    parsed = parseArgs({
+      allowPositionals: true,
+      options: {
+        config: { type: 'string', default: 'federation.config.js' },
+        out: { type: 'string', default: 'dist' },
+        'ts-config': { type: 'string' },
+        watch: { type: 'boolean', default: false },
+        dev: { type: 'boolean', default: false },
+        'vite-config': { type: 'string' },
+        'no-vite-config': { type: 'boolean', default: false },
+        'emit-headers': { type: 'boolean', default: false },
+        help: { type: 'boolean', short: 'h', default: false },
+        version: { type: 'boolean', short: 'v', default: false }
+      }
+    })
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error)
+    console.error(`\n${USAGE}`)
+    process.exit(1)
+  }
+  const { values, positionals } = parsed
+
+  if (values.help) {
+    console.log(USAGE)
+    return
+  }
+  if (values.version) {
+    console.log(readVersion())
+    return
+  }
 
   const command = positionals[0] ?? 'build'
   if (command !== 'build') {
-    console.error(`Unknown command "${command}". Usage: native-federation-vite build [options]`)
+    console.error(`Unknown command "${command}".\n\n${USAGE}`)
     process.exit(1)
   }
 
@@ -56,6 +107,7 @@ async function main(): Promise<void> {
   const result = await runViteBuilder(values.config, {
     workspaceRoot: root,
     outputPath: resolve(root, values.out),
+    tsConfig: values['ts-config'],
     dev: values.dev,
     watch: values.watch,
     emitHeaders: values['emit-headers'],
