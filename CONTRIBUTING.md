@@ -44,7 +44,11 @@ cat dist/remoteEntry.json
 
 ## Commits and PRs
 
-- Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:`.
+- Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:`,
+  `refactor:`, `perf:`, `build:`. The prefix drives the next version:
+  `fix:` is a patch, `feat:` a minor, and `feat!:` (or a `BREAKING CHANGE:`
+  footer) a major once past `1.0`. Other types do not trigger a release.
+  See [RELEASING.md](RELEASING.md) for the full flow.
 - PRs target `main`. CI (guard, typecheck, test, build) runs on every PR.
 - For a new feature or an architectural change, open an issue first so we can
   agree on the approach before you write code.

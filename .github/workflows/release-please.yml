@@ -1,0 +1,22 @@
+name: release-please
+
+# Keeps an open Release PR on main that bumps the version and updates the
+# changelog from Conventional Commits. Merging that PR tags the release.
+# npm publish stays manual (see RELEASING.md); no publish token is stored.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
