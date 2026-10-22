@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/jonmferreira/native-federation-vite/security/advisories/new
+    about: Report security issues privately, not as a public issue.
+  - name: Native Federation core
+    url: https://github.com/native-federation
+    about: Issues about the federation runtime or manifest contract belong to the core.

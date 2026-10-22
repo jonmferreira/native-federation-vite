@@ -1,0 +1,34 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected versus what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. federation.config.js: ...
+        2. native-federation-vite build ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: native-federation-vite, @softarc/native-federation, vite, node, framework
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: manifest
+    attributes:
+      label: remoteEntry.json (relevant part) and/or build logs
+      render: json
