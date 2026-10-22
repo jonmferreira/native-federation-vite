@@ -206,9 +206,13 @@ Pair it with HTTPS, trusted remote origins, and a Content-Security-Policy on the
 |---|---|
 | Vue 3 | ✅ verified |
 | React 18+ | ✅ verified |
+| Solid | ✅ verified |
 | Vanilla JS / TS | ✅ verified (see `examples/minimal-remote`) |
-| Svelte 4+ | 🚧 planned |
-| Solid | 🚧 planned |
+| Svelte 5 | ✅ builds + federates¹ |
+
+¹ Svelte 5 builds and federates, but its runtime currently inlines instead of
+deduping (a Native Federation + Svelte-5 subpath nuance, not an adapter limit).
+See [`examples/svelte-solid-remote`](examples/svelte-solid-remote).
 
 Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 4.8.x**.
 
@@ -217,6 +221,7 @@ Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 
 - [`examples/vue-remote`](examples/vue-remote): Vue remote via the CLI (reuses `vite.config.ts`)
 - [`examples/react-remote`](examples/react-remote): React remote via the CLI
 - [`examples/minimal-remote`](examples/minimal-remote): framework-agnostic, programmatic API
+- [`examples/svelte-solid-remote`](examples/svelte-solid-remote): Svelte + Solid in one remote
 - [`examples/angular-shell`](examples/angular-shell) / [`examples/html-shell`](examples/html-shell): hosts that consume the remotes
 
 ---

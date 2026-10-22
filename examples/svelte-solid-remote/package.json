@@ -1,0 +1,19 @@
+{
+  "name": "svelte-solid-remote-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "native-federation-vite build --emit-headers"
+  },
+  "dependencies": {
+    "@softarc/native-federation": "~4.8.1",
+    "solid-js": "^1.9.17",
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "native-federation-vite": "file:../..",
+    "vite": "^8.3.4",
+    "vite-plugin-solid": "^2.11.14"
+  }
+}
