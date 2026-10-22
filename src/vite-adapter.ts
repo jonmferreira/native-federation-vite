@@ -1,6 +1,6 @@
 import { join, parse } from 'node:path'
 
-import { build as viteBuild } from 'vite'
+import { build as viteBuild, esmExternalRequirePlugin } from 'vite'
 import type { InlineConfig, Plugin as VitePlugin, Rollup } from 'vite'
 
 import type { NFBuildAdapter, NFBuildAdapterOptions } from '@softarc/native-federation'
@@ -34,6 +34,18 @@ export function createInlineConfig(
 
   const fileNames = hash ? '[name]-[hash].js' : '[name].js'
 
+  // CJS deps (React, react-dom) keep internal `require('react')` calls. When a
+  // required package is externalized for sharing, Rolldown leaves the `require`
+  // as-is and it throws in the browser ("Calling require ... doesn't expose the
+  // require function"). Rolldown's builtin esm-external-require plugin rewrites
+  // those `require(<external>)` calls into real `import`s, which then resolve
+  // through the Native Federation import map (shared singleton preserved).
+  const externalList = Array.isArray(external)
+    ? external.filter((e): e is string => typeof e === 'string')
+    : []
+  const builtinPlugins =
+    externalList.length > 0 ? [esmExternalRequirePlugin({ external: externalList })] : []
+
   return {
     configFile: false,
     logLevel: 'warn',
@@ -47,7 +59,13 @@ export function createInlineConfig(
       target: adapterConfig.target ?? 'esnext',
       rollupOptions: {
         input,
-        external,
+        // Externals handled by esm-external-require must NOT also be listed here
+        // (Rolldown: "list externals in the plugin's external option, not the
+        // top-level one"). The plugin both keeps ESM `import`s external and
+        // rewrites CJS `require`s to imports. Anything it doesn't cover (e.g. a
+        // non-string matcher) stays on the top-level list.
+        external: builtinPlugins.length > 0 ? [] : external,
+        plugins: builtinPlugins,
         preserveEntrySignatures: 'strict',
         output: {
           format: 'es',

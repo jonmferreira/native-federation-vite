@@ -64,27 +64,30 @@ Open http://localhost:4200.
 ## What you should see
 
 - **Vue section**: a `<vue-fed-button>` renders and increments its counter on
-  click. This is a Vite-built Vue component running inside Angular, resolved
-  through the Native Federation import map.
-- **Network tab**: two `remoteEntry.json` requests, and the shared Vue runtime
-  chunk fetched once (singleton), not per expose.
+  click. A Vite-built Vue component running inside Angular, resolved through the
+  Native Federation import map.
+- **React section**: a `<react-fed-button>` renders and increments its own
+  counter on click, proving React hooks and state are live inside the same host.
+- **Network tab**: two `remoteEntry.json` requests, and each shared runtime chunk
+  (`react.<hash>.js`, `vue.<hash>.js`) fetched once (singleton), not per expose.
+- **Console**: no errors. (Angular's dev server logs two benign "Critical
+  dependency" warnings from the native-federation orchestrator; those are
+  expected.)
 
-## Known gotcha: React remote + Rolldown CJS interop
+## Note: how React (a CJS runtime) is shared
 
-The React remote currently fails to instantiate in the shell with:
+React and `react-dom` still ship CommonJS entry points, and `react-dom`
+internally calls `require('react')`. When `react` is externalized to be shared
+as a singleton, Rolldown (Vite 8) leaves that `require` in place, and it throws
+in the browser (`Calling require ... doesn't expose the require function`),
+because there is no `require` in an ES module context.
 
-```
-Calling require for "react" in an environment that doesn't expose the require function
-```
-
-React and `react-dom` still ship CommonJS entry points. When Rolldown (Vite 8)
-externalizes them for sharing, the generated bundle reaches for `require` at
-runtime, which does not exist in the browser ES module context. This is a
-bundler-interop issue, not a flaw in the remoteEntry the plugin emits: the same
-remote renders fine in an import-map host that provides a CJS shim. Tracking a
-clean fix (CJS-to-ESM interop shim or pre-bundling React as ESM) before the
-React path is marked validated. Vue, Solid and vanilla remotes do not hit this
-because their runtimes are already ESM.
+`native-federation-vite` handles this for you: it applies Rolldown's builtin
+`esmExternalRequirePlugin`, which rewrites `require(<external>)` into a real
+`import`. That import resolves through the same Native Federation import map, so
+`react-dom` and the exposed component share one `react` instance (loaded once).
+You do not need to configure anything in this example. Vue, Solid and vanilla
+remotes never trigger it, since their runtimes are already ESM.
 
 ## Troubleshooting
 

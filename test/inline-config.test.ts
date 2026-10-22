@@ -34,11 +34,22 @@ describe('createInlineConfig', () => {
     expect(output.entryFileNames).toBe('[name].js')
   })
 
-  it('passes externals through and emits ES modules', () => {
+  it('hands externals to esm-external-require (not top-level) and emits ES modules', () => {
+    // Externals handled by the plugin must be removed from the top-level list,
+    // otherwise Rolldown warns "duplicate external" and skips the require rewrite.
     const cfg = createInlineConfig(options({ external: ['vue', 'react'] }), {})
     const rollup = cfg.build?.rollupOptions
-    expect(rollup?.external).toEqual(['vue', 'react'])
+    expect(rollup?.external).toEqual([])
+    const plugins = (rollup?.plugins ?? []) as Array<{ name?: string }>
+    expect(plugins.some((p) => p?.name === 'builtin:esm-external-require')).toBe(true)
     expect((rollup?.output as { format?: string }).format).toBe('es')
+  })
+
+  it('adds no esm-external-require plugin when there are no externals', () => {
+    const cfg = createInlineConfig(options({ external: [] }), {})
+    const rollup = cfg.build?.rollupOptions
+    expect(rollup?.external).toEqual([])
+    expect((rollup?.plugins ?? []) as unknown[]).toEqual([])
   })
 
   it('never reads a stray vite.config and does not empty the shared outdir', () => {
