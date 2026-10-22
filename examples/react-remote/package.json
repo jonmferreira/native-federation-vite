@@ -1,0 +1,18 @@
+{
+  "name": "react-remote-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "native-federation-vite build"
+  },
+  "dependencies": {
+    "@softarc/native-federation": "~4.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "native-federation-vite": "file:../..",
+    "vite": "^8.3.4"
+  }
+}

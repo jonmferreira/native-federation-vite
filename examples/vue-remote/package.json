@@ -1,0 +1,17 @@
+{
+  "name": "vue-remote-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "native-federation-vite build"
+  },
+  "dependencies": {
+    "@softarc/native-federation": "~4.8.1",
+    "vue": "^3.5.44"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.10",
+    "native-federation-vite": "file:../..",
+    "vite": "^8.3.4"
+  }
+}

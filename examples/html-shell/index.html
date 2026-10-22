@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>native-federation-vite — runtime validation</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0b1020; color: #e6e9f0; padding: 2rem; }
+      h1 { font-size: 1.3rem; margin-bottom: 0.25rem; }
+      .sub { color: #8b93a7; margin-bottom: 1.5rem; font-size: 0.9rem; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 900px; }
+      @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+      .card { background: #151b2e; border: 1px solid #263150; border-radius: 10px; padding: 1.25rem; }
+      .card h2 { font-size: 1rem; margin-bottom: 0.75rem; }
+      .card.vue { border-top: 3px solid #42b883; }
+      .card.react { border-top: 3px solid #61dafb; }
+      .mount { min-height: 56px; display: flex; align-items: center; gap: 0.5rem; }
+      .status { font-size: 0.8rem; margin-top: 0.75rem; font-family: 'Consolas', monospace; }
+      .ok { color: #42d392; }
+      .err { color: #ff6b6b; }
+      code { background: #0b1020; padding: 0.1rem 0.35rem; border-radius: 4px; }
+    </style>
+
+    <script>
+      window.esmsInitOptions = { shimMode: true }
+    </script>
+    <script async src="https://ga.jspm.io/npm:es-module-shims@2.0.10/dist/es-module-shims.js"></script>
+  </head>
+
+  <body>
+    <h1>native-federation-vite — runtime validation</h1>
+    <p class="sub">
+      Vite remotes consumed via a native import map built from the core-generated
+      <code>remoteEntry.json</code> + <code>importmap.json</code>. Shared deps load once.
+    </p>
+
+    <div class="grid">
+      <div class="card vue">
+        <h2>vue-remote</h2>
+        <div class="mount" id="vue-mount"></div>
+        <div class="status" id="vue-status">loading…</div>
+      </div>
+      <div class="card react">
+        <h2>react-remote</h2>
+        <div class="mount" id="react-mount"></div>
+        <div class="status" id="react-status">loading…</div>
+      </div>
+      <div class="card vue">
+        <h2>vue-remote — Web Component (opt-in)</h2>
+        <div class="mount" id="wc-mount"></div>
+        <div class="status" id="wc-status">loading…</div>
+      </div>
+    </div>
+
+    <script type="module">
+      const REMOTES = {
+        'vue-remote': 'http://localhost:4310',
+        'react-remote': 'http://localhost:4311'
+      }
+
+      const log = (...a) => console.log('[host]', ...a)
+      const setStatus = (id, html, cls) => {
+        const el = document.getElementById(id)
+        el.innerHTML = html
+        el.className = 'status ' + (cls || '')
+      }
+
+      // 1) Fetch each remote's manifest + import map, build one absolute import map.
+      const manifests = {}
+      const importmap = { imports: {} }
+      for (const [name, base] of Object.entries(REMOTES)) {
+        const remoteEntry = await (await fetch(`${base}/remoteEntry.json`)).json()
+        const im = await (await fetch(`${base}/importmap.json`)).json()
+        manifests[name] = { base, remoteEntry }
+        for (const [spec, file] of Object.entries(im.imports || {})) {
+          importmap.imports[spec] = `${base}/${file}`
+        }
+        log(`${name}: exposes`, remoteEntry.exposes.map((e) => e.key), '| shared', remoteEntry.shared.map((s) => s.packageName))
+      }
+      log('combined import map', importmap.imports)
+
+      // 2) Inject the import map (shim mode) before any module resolution.
+      const script = document.createElement('script')
+      script.type = 'importmap-shim'
+      script.textContent = JSON.stringify(importmap)
+      document.head.appendChild(script)
+
+      // 3) Wait for es-module-shims.
+      while (!window.importShim) await new Promise((r) => setTimeout(r, 20))
+
+      const fileFor = (name, key) =>
+        `${manifests[name].base}/${manifests[name].remoteEntry.exposes.find((e) => e.key === key).outFileName}`
+
+      // 4) Vue: mount the federated Button + Card using the SHARED vue.
+      try {
+        const { createApp, h } = await window.importShim('vue')
+        const Button = (await window.importShim(fileFor('vue-remote', './Button'))).default
+        const Card = (await window.importShim(fileFor('vue-remote', './Card'))).default
+        createApp({ render: () => h('div', { style: 'display:flex;gap:.5rem;align-items:center' }, [h(Button, { label: 'Federated Vue' }), h(Card, { title: 'Card' })]) }).mount('#vue-mount')
+        setStatus('vue-status', '✓ loaded + rendered via shared <code>vue</code>', 'ok')
+        log('vue-remote rendered')
+      } catch (e) {
+        setStatus('vue-status', '✗ ' + e.message, 'err')
+        console.error('[host] vue error', e)
+      }
+
+      // 5) React: load the federated module (functional proof) using the shared react.
+      try {
+        const React = await window.importShim('react')
+        const Button = (await window.importShim(fileFor('react-remote', './Button'))).default
+        const el = React.createElement(Button, { label: 'Federated React' })
+        document.getElementById('react-mount').textContent =
+          `module loaded ✓ (component: ${Button.name || 'Button'}, element type ok: ${!!el.type})`
+        setStatus('react-status', '✓ loaded via shared <code>react</code> (render needs host react-dom)', 'ok')
+        log('react-remote loaded', el)
+      } catch (e) {
+        setStatus('react-status', '✗ ' + e.message, 'err')
+        console.error('[host] react error', e)
+      }
+
+      // 6) Web Component (opt-in): load the custom element and drop in a <tag>.
+      //    No createApp / no react-dom glue — it self-mounts. vue stays shared.
+      try {
+        const El = (await window.importShim(fileFor('vue-remote', './ButtonElement'))).default
+        customElements.define('fed-button', El)
+        const node = document.createElement('fed-button')
+        node.setAttribute('label', 'Web Component')
+        document.getElementById('wc-mount').appendChild(node)
+        setStatus('wc-status', '✓ &lt;fed-button&gt; via customElements.define — no mount glue', 'ok')
+        log('vue-remote Web Component defined + mounted')
+      } catch (e) {
+        setStatus('wc-status', '✗ ' + e.message, 'err')
+        console.error('[host] wc error', e)
+      }
+
+      window.__NF_VALIDATION_DONE__ = true
+    </script>
+  </body>
+</html>

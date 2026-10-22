@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.angular/
+out-tsc/
+.nf-cache/
+.DS_Store
+Thumbs.db
+*.swp
