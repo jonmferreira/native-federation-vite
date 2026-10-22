@@ -6,6 +6,12 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <!-- Native Federation runs in shim mode: it injects an importmap-shim that
+         es-module-shims resolves. The native-federation Angular builder adds this
+         automatically; a plain `ng build` host must include it manually. -->
+    <script type="esms-options">{ "shimMode": true }</script>
+    <script async src="https://ga.jspm.io/npm:es-module-shims@2.0.10/dist/es-module-shims.js"></script>
   </head>
   <body>
     <app-root></app-root>

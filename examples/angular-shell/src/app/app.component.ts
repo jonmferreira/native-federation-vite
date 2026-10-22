@@ -1,96 +1,84 @@
-import { Component, OnInit } from '@angular/core'
-import { CommonModule } from '@angular/common'
-import { loadRemoteModule } from '@angular-architects/native-federation'
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, signal } from '@angular/core'
+
+// es-module-shims resolver set up by initFederation (import map from the remotes).
+declare global {
+  interface Window {
+    importShim: (specifier: string) => Promise<{ default: CustomElementConstructor }>
+  }
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <h1>Native Federation Vite PoC</h1>
-    <p>Shell Angular carregando remotes Vite (Vue + React).</p>
+    <h1>native-federation-vite — Angular shell</h1>
+    <p>Angular consuming Vite remotes as Web Components (no mount glue).</p>
 
-    <section>
-      <h2>Vue Remote (./Button)</h2>
-      <div id="vue-button" style="padding: 1rem; border: 1px solid #42b883">
-        <p *ngIf="!vueButtonComponent">Carregando...</p>
-        <p *ngIf="vueLoadError" style="color: red">Erro: {{ vueLoadError }}</p>
-        <ng-container *ngIf="vueButtonComponent">
-          <ng-container *ngComponentOutlet="vueButtonComponent"></ng-container>
-        </ng-container>
-      </div>
+    <section class="vue">
+      <h2>vue-remote → &lt;vue-fed-button&gt;</h2>
+      @if (vueReady()) {
+        <vue-fed-button label="Vue in Angular"></vue-fed-button>
+      } @else if (vueError()) {
+        <p class="err">{{ vueError() }}</p>
+      } @else {
+        <p>loading…</p>
+      }
     </section>
 
-    <section>
-      <h2>React Remote (./Button)</h2>
-      <div id="react-button" style="padding: 1rem; border: 1px solid #61dafb">
-        <p *ngIf="!reactButtonComponent">Carregando...</p>
-        <p *ngIf="reactLoadError" style="color: red">Erro: {{ reactLoadError }}</p>
-        <ng-container *ngIf="reactButtonComponent">
-          <ng-container *ngComponentOutlet="reactButtonComponent"></ng-container>
-        </ng-container>
-      </div>
-    </section>
-
-    <section>
-      <h2>Console</h2>
-      <p>
-        Abra o DevTools (F12) → Console para ver os logs de carregamento.
-        <strong>Shared deps (vue, react) devem carregar 1x.</strong>
-      </p>
+    <section class="react">
+      <h2>react-remote → &lt;react-fed-button&gt;</h2>
+      @if (reactReady()) {
+        <react-fed-button label="React in Angular"></react-fed-button>
+      } @else if (reactError()) {
+        <p class="err">{{ reactError() }}</p>
+      } @else {
+        <p>loading…</p>
+      }
     </section>
   `,
   styles: [
     `
-      h1 {
-        color: #333;
-      }
-      section {
-        margin: 2rem 0;
-        padding: 1rem;
-        background: #f5f5f5;
-        border-radius: 4px;
-      }
-      h2 {
-        font-size: 1.2rem;
-        margin-top: 0;
-      }
+      h1 { font-size: 1.3rem; }
+      section { margin: 1.5rem 0; padding: 1rem; border-radius: 8px; background: #f5f5f7; }
+      section.vue { border-top: 3px solid #42b883; }
+      section.react { border-top: 3px solid #61dafb; }
+      h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+      .err { color: #c0392b; font-family: monospace; }
     `
   ]
 })
 export class AppComponent implements OnInit {
-  vueButtonComponent: any
-  reactButtonComponent: any
-  vueLoadError: string | null = null
-  reactLoadError: string | null = null
+  readonly vueReady = signal(false)
+  readonly vueError = signal<string | null>(null)
+  readonly reactReady = signal(false)
+  readonly reactError = signal<string | null>(null)
 
-  async ngOnInit() {
-    console.log('[shell] Carregando Vue remote...')
-    await this.loadVueButton()
-
-    console.log('[shell] Carregando React remote...')
-    await this.loadReactButton()
+  async ngOnInit(): Promise<void> {
+    await this.defineElement('vue-remote', 'vue-fed-button', this.vueReady, this.vueError)
+    await this.defineElement('react-remote', 'react-fed-button', this.reactReady, this.reactError)
   }
 
-  private async loadVueButton() {
+  private async defineElement(
+    remote: string,
+    tag: string,
+    ready: ReturnType<typeof signal<boolean>>,
+    error: ReturnType<typeof signal<string | null>>
+  ): Promise<void> {
     try {
-      const mod = await loadRemoteModule('vue-remote', './Button')
-      this.vueButtonComponent = mod.default
-      console.log('[shell] Vue Button carregado:', mod)
-    } catch (err: any) {
-      this.vueLoadError = err?.message || String(err)
-      console.error('[shell] Erro ao carregar Vue:', err)
-    }
-  }
-
-  private async loadReactButton() {
-    try {
-      const mod = await loadRemoteModule('react-remote', './Button')
-      this.reactButtonComponent = mod.default
-      console.log('[shell] React Button carregado:', mod)
-    } catch (err: any) {
-      this.reactLoadError = err?.message || String(err)
-      console.error('[shell] Erro ao carregar React:', err)
+      // es-module-shims loads async; wait until its resolver is ready.
+      while (typeof window.importShim !== 'function') {
+        await new Promise((r) => setTimeout(r, 20))
+      }
+      // The import map (built by initFederation from each remote's remoteEntry.json)
+      // maps "<remote>/./ButtonElement" to the remote's bundle; shared deps load once.
+      const mod = await window.importShim(`${remote}/./ButtonElement`)
+      if (!customElements.get(tag)) customElements.define(tag, mod.default)
+      ready.set(true)
+      console.log(`[shell] ${tag} defined from ${remote}`)
+    } catch (e: unknown) {
+      error.set(e instanceof Error ? e.message : String(e))
+      console.error(`[shell] ${remote} error`, e)
     }
   }
 }
