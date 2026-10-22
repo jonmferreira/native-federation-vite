@@ -184,9 +184,9 @@ Pair it with HTTPS, trusted remote origins, and a Content-Security-Policy on the
 |---|---|
 | Vue 3 | ✅ verified |
 | React 18+ | ✅ verified |
+| Vanilla JS / TS | ✅ verified (see `examples/minimal-remote`) |
 | Svelte 4+ | 🚧 planned |
 | Solid | 🚧 planned |
-| Vanilla JS | 🚧 planned |
 
 Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 4.8.x**.
 
@@ -201,18 +201,17 @@ Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 
 
 ## Status
 
-🚧 **Under development, built in public.**
+**`0.1.0` is on npm.** Early and built in public, so the API may still change before `1.0`.
 
 - [x] Vite adapter on `@softarc/native-federation` core (`remoteEntry.json` + import map)
 - [x] Shared dependencies, singletons, `@nf-internal/` chunking (handled by core)
 - [x] CLI with automatic `vite.config` plugin reuse
 - [x] Watch mode with shared-dependency cache
+- [x] `exposesFromGlob`, opt-in Web Component expose, opt-in integrity (SRI)
 - [x] Vue + React examples, validated in a host (shared deps load once)
-- [x] Optional Web Component expose (`defineCustomElement`)
 
 ## Roadmap
 
-- [ ] npm publish (`0.1.0`)
 - [ ] Runtime validation inside a real Angular shell (not only the import-map host)
 - [ ] React Web Component wrapper (parity with the Vue path)
 - [ ] Svelte + Solid support
