@@ -214,6 +214,11 @@ Pair it with HTTPS, trusted remote origins, and a Content-Security-Policy on the
 deduping (a Native Federation + Svelte-5 subpath nuance, not an adapter limit).
 See [`examples/svelte-solid-remote`](examples/svelte-solid-remote).
 
+React and `react-dom` ship CommonJS, and `react-dom` calls `require('react')`
+internally. The adapter applies Rolldown's esm-external-require so that resolves
+through the shared import map; `react` stays a singleton. Verified rendering
+inside the Angular shell. See [`examples/angular-shell`](examples/angular-shell).
+
 Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 4.8.x**.
 
 ## Examples
@@ -229,21 +234,24 @@ Built and verified on **Vite 8 (Rolldown)** with **`@softarc/native-federation` 
 ## Status
 
 **`0.1.0` is on npm.** Early and built in public, so the API may still change before `1.0`.
+The list below reflects this repository; the next release packages the items marked "in `main`".
 
 - [x] Vite adapter on `@softarc/native-federation` core (`remoteEntry.json` + import map)
 - [x] Shared dependencies, singletons, `@nf-internal/` chunking (handled by core)
-- [x] CLI with automatic `vite.config` plugin reuse
+- [x] CLI with automatic `vite.config` plugin reuse (`--help`, `--version`, `--ts-config`)
 - [x] Watch mode with shared-dependency cache
 - [x] `exposesFromGlob`, opt-in Web Component expose, opt-in integrity (SRI)
-- [x] Vue + React examples, validated in a host (shared deps load once)
+- [x] Vue, React, Solid, vanilla and Svelte examples
+- [x] Runtime validation in a real Angular shell: Vue and React rendered as Web
+  Components, both live, `react` loaded once *(in `main`)*
+- [x] Shared CJS runtimes (React/react-dom) via Rolldown's esm-external-require,
+  so `require('react')` resolves through the import map *(in `main`)*
+- [x] Builds for config-less remotes (generates a temporary tsconfig) *(in `main`)*
 
 ## Roadmap
 
-- [ ] Runtime validation inside a real Angular shell (not only the import-map host)
-- [ ] React Web Component wrapper (parity with the Vue path)
-- [ ] Svelte + Solid support
-- [ ] Perf: warm/incremental build context (one `vite.build()` per bundle group today)
-- [ ] `CONTRIBUTING.md` + issue/PR templates
+- [ ] Smoke-test the published tarball in CI (`npm pack` + consume)
+- [ ] Optional shared-version audit across remotes (`createExternalsAudit`)
 - [ ] Upstream contribution ([native-federation/angular-adapter#184](https://github.com/native-federation/angular-adapter/issues/184))
 
 ---
