@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "native-federation-vite build"
+    "build": "native-federation-vite build --emit-headers"
   },
   "dependencies": {
+    "@r2wc/react-to-web-component": "^2.1.1",
     "@softarc/native-federation": "~4.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

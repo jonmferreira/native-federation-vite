@@ -3,7 +3,8 @@ import { withNativeFederation, shareAll } from '@softarc/native-federation/confi
 export default withNativeFederation({
   name: 'react-remote',
   exposes: {
-    './Button': './src/components/Button.tsx'
+    './Button': './src/components/Button.tsx',
+    './ButtonElement': './src/elements/button-element.ts'
   },
   shared: {
     ...shareAll({ singleton: true, strictVersion: true, requiredVersion: 'auto' })
