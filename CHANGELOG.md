@@ -5,6 +5,22 @@ All notable changes to this project are documented here. The format follows
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the version
 is `0.x`, the public API may change between minor versions.
 
+## [0.3.0](https://github.com/jonmferreira/native-federation-vite/compare/native-federation-vite-v0.2.0...native-federation-vite-v0.3.0) (2026-10-22)
+
+
+### Features
+
+* --emit-headers — write _headers (Cloudflare/Netlify) for reliable MFE updates ([0a3f1b6](https://github.com/jonmferreira/native-federation-vite/commit/0a3f1b6c5263bef27b1d06ea2db1f8d6b54a77cd))
+* **examples:** React Web Component expose via r2wc (parity with Vue) ([805650b](https://github.com/jonmferreira/native-federation-vite/commit/805650bff2da77d5b947bb2f1b0d270494aff8da))
+* **examples:** svelte-solid-remote — Svelte 5 + Solid in one remote ([3d75e9c](https://github.com/jonmferreira/native-federation-vite/commit/3d75e9c86c2a74a29a87bfc45e967c6eddfee4d4))
+* **examples:** validate Angular shell loading Vite remotes as Web Components ([1e346c7](https://github.com/jonmferreira/native-federation-vite/commit/1e346c7184a9a105d79667f8b8e1894c3b484c2e))
+
+
+### Bug Fixes
+
+* **adapter:** share CJS runtimes (React) via esm-external-require ([fbcd570](https://github.com/jonmferreira/native-federation-vite/commit/fbcd57096599fc224d78f69d81beeddc3b656657))
+* **cli:** work for config-less remotes; add --help/--version/--ts-config ([1b45708](https://github.com/jonmferreira/native-federation-vite/commit/1b457084088aef1f973c00155e8de4496140d23d))
+
 ## [0.2.0] - 2026-10-22
 
 ### Changed
